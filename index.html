@@ -3,527 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Angry Lovebird</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <title>Race Pro Car</title>
     <style>
         body {
-            margin: 0; overflow: hidden; font-family: 'Press Start 2P', cursive;
-            background: linear-gradient(to bottom, #87CEEB, #4682B4); /* Sky blue */
-            color: white; user-select: none; -webkit-user-select: none;
+            margin: 0; padding: 0; background: #222; color: #fff;
+            font-family: 'Arial', sans-serif; overflow: hidden;
             display: flex; justify-content: center; align-items: center; min-height: 100vh;
         }
-
-        #gameCanvas {
-            background: url('https://i.imgur.com/uR1uQ2e.png') no-repeat center center / cover; /* Background cloud/sky */
-            border: 5px solid #55341D; /* Tree bark color */
-            display: block;
+        #gameContainer {
+            position: relative; width: 400px; height: 600px;
+            background: #333; border: 4px solid #555; overflow: hidden;
         }
+        canvas { display: block; background: #444; }
 
-        /* --- Main Menu, Settings, Leaderboard Styles --- */
-        .game-overlay {
+        /* Overlay UI */
+        .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7); display: flex;
-            flex-direction: column; justify-content: center; align-items: center;
-            font-size: 1.2em; text-align: center;
-            box-sizing: border-box; padding: 20px;
+            background: rgba(0,0,0,0.8); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 10;
         }
+        h1 { color: #f1c40f; text-shadow: 0 0 10px #f1c40f; margin-bottom: 30px; }
+        button {
+            background: #e74c3c; border: none; color: white; padding: 15px 40px;
+            margin: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 200px;
+        }
+        button:hover { background: #c0392b; }
 
-        .game-overlay h2 {
-            font-size: 1.8em; color: #FFD700; text-shadow: 0 0 10px #FFD700;
-            margin-bottom: 20px;
-        }
-        .game-overlay button, .game-overlay input[type="range"] {
-            background: #FF4500; color: white; border: 3px solid #FFA500;
-            padding: 12px 25px; margin: 10px; border-radius: 8px; cursor: pointer;
-            font-family: 'Press Start 2P', cursive; font-size: 0.9em;
-            transition: background 0.2s, transform 0.2s;
-            max-width: 250px; width: 80%;
-        }
-        .game-overlay button:hover {
-            background: #FF6347; transform: scale(1.05);
-        }
+        /* Settings */
+        .settings-panel { text-align: left; background: #444; padding: 20px; border-radius: 10px; }
+        label { display: block; margin: 10px 0 5px; font-size: 14px; }
+        select { width: 100%; padding: 5px; margin-bottom: 10px; }
 
-        /* Settings specific */
-        .settings-content label { display: block; margin-top: 15px; font-size: 0.8em; }
-        .settings-content input[type="range"] {
-            -webkit-appearance: none; appearance: none;
-            height: 10px; border-radius: 5px; background: #ddd; outline: none;
-            opacity: 0.7; transition: opacity 0.2s;
-            background: #4CAF50; /* Green */
-            border: 1px solid #388E3C;
-            max-width: 200px;
+        #hud {
+            position: absolute; top: 10px; left: 10px; color: #f1c40f;
+            font-weight: bold; pointer-events: none; z-index: 5;
         }
-        .settings-content input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none; appearance: none;
-            width: 20px; height: 20px; border-radius: 50%;
-            background: #FFD700; /* Gold */
-            cursor: pointer;
-            box-shadow: 0 0 5px rgba(0,0,0,0.5);
-        }
-        .settings-content span { margin-left: 10px; }
-
-        /* Leaderboard specific */
-        .leaderboard-content table {
-            width: 80%; max-width: 400px; border-collapse: collapse; margin-top: 20px;
-        }
-        .leaderboard-content th, .leaderboard-content td {
-            border: 1px solid #FFD700; padding: 8px;
-            font-size: 0.7em;
-        }
-        .leaderboard-content th { background: #FF4500; color: white; }
-        .leaderboard-content tr:nth-child(even) { background: rgba(255, 255, 255, 0.1); }
-        .leaderboard-content tr:nth-child(odd) { background: rgba(0, 0, 0, 0.1); }
-        .leaderboard-content .min-score { color: #FFA500; }
-        .leaderboard-content .max-score { color: #4CAF50; }
-
-        /* Game UI */
-        #gameUI {
-            position: absolute; top: 10px; left: 10px; right: 10px;
-            display: flex; justify-content: space-between;
-            font-size: 0.8em; z-index: 10;
-        }
-        #fpsDisplay { color: #FFD700; }
-        #scoreDisplay { color: #4CAF50; }
     </style>
 </head>
 <body>
 
-    <canvas id="gameCanvas" width="800" height="480"></canvas>
-
-    <div id="mainMenu" class="game-overlay">
-        <h2>ANGRY LOVEBIRD</h2>
-        <button onclick="startGame()">Mulai Game</button>
-        <button onclick="showSettings()">Pengaturan</button>
-        <button onclick="showLeaderboard()">Papan Peringkat</button>
+<div id="gameContainer">
+    <div id="hud">Score: 0 | FPS: 0</div>
+    
+    <div id="mainMenu" class="overlay">
+        <h1>RACE PRO CAR</h1>
+        <button onclick="startGame()">START RACE</button>
+        <button onclick="showSettings()">SETTINGS</button>
     </div>
 
-    <div id="settingsMenu" class="game-overlay" style="display: none;">
-        <h2>PENGATURAN</h2>
-        <div class="settings-content">
-            <label for="volumeSlider">Volume Musik: <span id="volumeValue">100%</span></label>
-            <input type="range" id="volumeSlider" min="0" max="100" value="100" oninput="updateVolume(this.value)">
-
-            <label for="fpsSlider">FPS Game: <span id="fpsValue">60</span></label>
-            <input type="range" id="fpsSlider" min="10" max="120" value="60" step="10" oninput="updateFPS(this.value)">
+    <div id="settingsMenu" class="overlay" style="display:none;">
+        <h2>SETTINGS</h2>
+        <div class="settings-panel">
+            <label>Graphics Quality:</label>
+            <select id="gfx">
+                <option value="high">High (Glow Effects)</option>
+                <option value="low">Low (Solid Colors)</option>
+            </select>
+            <label>Target FPS:</label>
+            <select id="fpsLimit">
+                <option value="30">30 FPS</option>
+                <option value="60" selected>60 FPS</option>
+                <option value="120">120 FPS</option>
+            </select>
         </div>
-        <button onclick="hideSettings()">Kembali</button>
+        <button onclick="hideSettings()">SAVE & BACK</button>
     </div>
 
-    <div id="leaderboardMenu" class="game-overlay" style="display: none;">
-        <h2>PAPAN PERINGKAT</h2>
-        <div class="leaderboard-content">
-            <table id="scoreTable">
-                <thead>
-                    <tr><th>Rank</th><th>Skor</th></tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-        </div>
-        <button onclick="hideLeaderboard()">Kembali</button>
-    </div>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+</div>
 
-    <div id="gameUI" style="display: none;">
-        <span id="scoreDisplay">Skor: 0</span>
-        <span id="fpsDisplay">FPS: 0</span>
-    </div>
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const hud = document.getElementById("hud");
+    
+    // Game Variables
+    let gameActive = false;
+    let score = 0;
+    let speed = 5;
+    let player = { x: 175, y: 500, w: 50, h: 80 };
+    let enemies = [];
+    let roadStrips = [];
+    let lastTime = 0;
+    let fps = 0;
+    
+    // Settings Default
+    let settings = { gfx: 'high', fps: 60 };
 
-    <audio id="gameMusic" loop>
-        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
+    function showSettings() {
+        document.getElementById("mainMenu").style.display = "none";
+        document.getElementById("settingsMenu").style.display = "flex";
+    }
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const mainMenu = document.getElementById('mainMenu');
-        const settingsMenu = document.getElementById('settingsMenu');
-        const leaderboardMenu = document.getElementById('leaderboardMenu');
-        const gameUI = document.getElementById('gameUI');
-        const volumeSlider = document.getElementById('volumeSlider');
-        const volumeValue = document.getElementById('volumeValue');
-        const fpsSlider = document.getElementById('fpsSlider');
-        const fpsValue = document.getElementById('fpsValue');
-        const gameMusic = document.getElementById('gameMusic');
-        const scoreDisplay = document.getElementById('scoreDisplay');
-        const fpsDisplay = document.getElementById('fpsDisplay');
+    function hideSettings() {
+        settings.gfx = document.getElementById("gfx").value;
+        settings.fps = parseInt(document.getElementById("fpsLimit").value);
+        document.getElementById("settingsMenu").style.display = "none";
+        document.getElementById("mainMenu").style.display = "flex";
+    }
 
-        // --- Game Variables ---
-        let gameLoop;
-        let gameActive = false;
-        let lovebird = { x: 100, y: 380, radius: 15, color: 'pink', flying: false, vx: 0, vy: 0 };
-        let slingshotPos = { x: 100, y: 400 };
-        let blocks = [];
-        let monkeys = [];
-        let score = 0;
-        let maxFPS = 60;
-        let lastFrameTime = 0;
+    function startGame() {
+        document.getElementById("mainMenu").style.display = "none";
+        gameActive = true;
+        score = 0;
+        speed = 5;
+        enemies = [];
+        player.x = 175;
+        requestAnimationFrame(gameLoop);
+    }
 
-        // Load images (placeholder for now)
-        const lovebirdImg = new Image();
-        lovebirdImg.src = ' https://share.google/SIEQt1ltHrOMsST0F '; // Placeholder for lovebird (use a square image)
-        const blockImg = new Image();
-        blockImg.src = ' https://share.google/BGSVMfwMP0aJ4e1Bf '; // Placeholder for block (e.g., wood)
-        const monkeyImg = new Image();
-        monkeyImg.src = 'https://i.imgur.com/XJqYVnC.png'; // Placeholder for monkey
+    // Input Handling
+    let keys = {};
+    window.addEventListener("keydown", e => keys[e.code] = true);
+    window.addEventListener("keyup", e => keys[e.code] = false);
 
-        // --- Game State Management ---
-        function showMenu(menuId) {
-            mainMenu.style.display = 'none';
-            settingsMenu.style.display = 'none';
-            leaderboardMenu.style.display = 'none';
-            gameUI.style.display = 'none';
-            document.getElementById(menuId).style.display = 'flex';
-            gameMusic.play();
-            gameActive = false;
+    // Touch Input
+    window.addEventListener("touchstart", e => {
+        let touchX = e.touches[0].clientX;
+        if(touchX < window.innerWidth/2) keys['ArrowLeft'] = true;
+        else keys['ArrowRight'] = true;
+    });
+    window.addEventListener("touchend", () => {
+        keys['ArrowLeft'] = false;
+        keys['ArrowRight'] = false;
+    });
+
+    function drawCar(x, y, color, isPlayer) {
+        // Body
+        ctx.fillStyle = color;
+        if(settings.gfx === 'high') {
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = color;
+        }
+        ctx.fillRect(x, y, 50, 80);
+        ctx.shadowBlur = 0;
+
+        // Windows
+        ctx.fillStyle = "#333";
+        ctx.fillRect(x+5, y+15, 40, 20); // Front
+        ctx.fillRect(x+5, y+50, 40, 10); // Rear
+
+        // Lights
+        ctx.fillStyle = isPlayer ? "white" : "red";
+        ctx.fillRect(x+5, y, 10, 5);
+        ctx.fillRect(x+35, y, 10, 5);
+    }
+
+    function gameLoop(timestamp) {
+        if(!gameActive) return;
+
+        // FPS Logic
+        let deltaTime = timestamp - lastTime;
+        if (deltaTime < 1000 / settings.fps) {
+            requestAnimationFrame(gameLoop);
+            return;
+        }
+        fps = Math.round(1000 / deltaTime);
+        lastTime = timestamp;
+
+        update();
+        draw();
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    function update() {
+        // Player Move
+        if(keys['ArrowLeft'] && player.x > 10) player.x -= 7;
+        if(keys['ArrowRight'] && player.x < 340) player.x += 7;
+
+        // Spawn Enemies
+        if(Math.random() < 0.02) {
+            enemies.push({ x: Math.random() * 340, y: -100, w: 50, h: 80, color: '#e74c3c' });
         }
 
-        function startGame() {
-            showMenu('gameUI');
-            resetGame();
-            gameActive = true;
-            if (!gameLoop) {
-                gameLoop = setInterval(updateGame, 1000 / maxFPS);
-            } else {
-                clearInterval(gameLoop);
-                gameLoop = setInterval(updateGame, 1000 / maxFPS);
-            }
-        }
-
-        function showSettings() {
-            showMenu('settingsMenu');
-            volumeSlider.value = gameMusic.volume * 100;
-            volumeValue.innerText = volumeSlider.value + '%';
-            fpsSlider.value = maxFPS;
-            fpsValue.innerText = maxFPS;
-        }
-
-        function hideSettings() {
-            showMenu('mainMenu');
-        }
-
-        function showLeaderboard() {
-            showMenu('leaderboardMenu');
-            updateLeaderboardTable();
-        }
-
-        function hideLeaderboard() {
-            showMenu('mainMenu');
-        }
-
-        // --- Settings Functions ---
-        function updateVolume(value) {
-            gameMusic.volume = value / 100;
-            volumeValue.innerText = value + '%';
-            localStorage.setItem('gameVolume', value);
-        }
-
-        function updateFPS(value) {
-            maxFPS = parseInt(value);
-            fpsValue.innerText = value;
-            localStorage.setItem('gameFPS', value);
-            // Re-start game loop with new FPS if game is active
-            if (gameActive && gameLoop) {
-                clearInterval(gameLoop);
-                gameLoop = setInterval(updateGame, 1000 / maxFPS);
-            }
-        }
-
-        // --- Leaderboard Functions ---
-        let scores = JSON.parse(localStorage.getItem('angryLovebirdScores')) || [];
-
-        function addScore(newScore) {
-            scores.push(newScore);
-            scores.sort((a, b) => b - a); // Sort descending for highest
-            if (scores.length > 10) scores.splice(10); // Keep top 10
-            localStorage.setItem('angryLovebirdScores', JSON.stringify(scores));
-        }
-
-        function updateLeaderboardTable() {
-            const tbody = document.getElementById('scoreTable').querySelector('tbody');
-            tbody.innerHTML = ''; // Clear existing rows
-
-            if (scores.length === 0) {
-                const row = tbody.insertRow();
-                const cell = row.insertCell();
-                cell.colSpan = 2;
-                cell.innerText = "Belum ada skor.";
-                return;
-            }
-
-            scores.forEach((s, index) => {
-                const row = tbody.insertRow();
-                const rankCell = row.insertCell();
-                const scoreCell = row.insertCell();
-                rankCell.innerText = index + 1;
-                scoreCell.innerText = s;
-                if (index === 0) scoreCell.classList.add('max-score'); // Highest score
-                if (index === scores.length - 1) scoreCell.classList.add('min-score'); // Lowest of the top 10
-            });
-        }
-
-        // --- Game Logic ---
-        function resetGame() {
-            lovebird = { x: 100, y: 380, radius: 15, color: 'pink', flying: false, vx: 0, vy: 0 };
-            blocks = [];
-            monkeys = [];
-            score = 0;
-            scoreDisplay.innerText = `Skor: ${score}`;
+        // Move Enemies
+        enemies.forEach((enemy, index) => {
+            enemy.y += speed;
             
-            // Generate some blocks and monkeys
-            for (let i = 0; i < 5; i++) {
-                blocks.push({ x: 500 + i * 40, y: 400, width: 30, height: 30, color: 'brown', hit: false });
-                if (Math.random() > 0.5) {
-                    monkeys.push({ x: 500 + i * 40, y: 370, radius: 10, color: 'gray', hit: false });
-                }
-            }
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear only game area, not background image
-
-            // Draw slingshot (simple lines)
-            ctx.strokeStyle = '#55341D';
-            ctx.lineWidth = 5;
-            ctx.beginPath();
-            ctx.moveTo(slingshotPos.x - 20, slingshotPos.y + 20);
-            ctx.lineTo(slingshotPos.x, slingshotPos.y);
-            ctx.lineTo(slingshotPos.x + 20, slingshotPos.y + 20);
-            ctx.stroke();
-
-            // Draw Lovebird
-            ctx.save();
-            ctx.translate(lovebird.x, lovebird.y);
-            ctx.rotate(lovebird.vx * 0.05); // Simple rotation
-            ctx.drawImage(lovebirdImg, -lovebird.radius, -lovebird.radius, lovebird.radius * 2, lovebird.radius * 2);
-            ctx.restore();
-
-            // Draw blocks
-            blocks.forEach(block => {
-                if (!block.hit) {
-                    ctx.drawImage(blockImg, block.x, block.y, block.width, block.height);
-                }
-            });
-
-            // Draw monkeys
-            monkeys.forEach(monkey => {
-                if (!monkey.hit) {
-                    ctx.drawImage(monkeyImg, monkey.x, monkey.y, monkey.radius * 2, monkey.radius * 2);
-                }
-            });
-        }
-
-        function updateGame(currentTime) {
-            if (!gameActive) return;
-
-            const deltaTime = (currentTime - lastFrameTime) / 1000; // in seconds
-            lastFrameTime = currentTime;
-            const currentFPS = 1 / deltaTime;
-            fpsDisplay.innerText = `FPS: ${Math.round(currentFPS)}`;
-
-            // Physics for Lovebird
-            if (lovebird.flying) {
-                lovebird.x += lovebird.vx * deltaTime * 60; // Scale with deltaTime for consistent speed
-                lovebird.y += lovebird.vy * deltaTime * 60;
-                lovebird.vy += 9.8 * deltaTime; // Gravity
-
-                // Collision with blocks
-                blocks.forEach(block => {
-                    if (!block.hit &&
-                        lovebird.x + lovebird.radius > block.x &&
-                        lovebird.x - lovebird.radius < block.x + block.width &&
-                        lovebird.y + lovebird.radius > block.y &&
-                        lovebird.y - lovebird.radius < block.y + block.height) {
-                        block.hit = true;
-                        score += 50; // Score for hitting a block
-                        scoreDisplay.innerText = `Skor: ${score}`;
-                        lovebird.flying = false; // Lovebird stops after hitting
-                        lovebird.vx *= 0.1; // Lose momentum
-                        lovebird.vy *= -0.1; // Bounce
-                    }
-                });
-
-                // Collision with monkeys
-                monkeys.forEach(monkey => {
-                    if (!monkey.hit &&
-                        Math.sqrt(Math.pow(lovebird.x - monkey.x, 2) + Math.pow(lovebird.y - monkey.y, 2)) < lovebird.radius + monkey.radius) {
-                        monkey.hit = true;
-                        score += 100; // Score for hitting a monkey
-                        scoreDisplay.innerText = `Skor: ${score}`;
-                    }
-                });
-
-                // Boundary check
-                if (lovebird.x > canvas.width || lovebird.y > canvas.height) {
-                    lovebird.flying = false;
-                    endRound();
-                }
+            // Collision Detection
+            if (player.x < enemy.x + enemy.w &&
+                player.x + player.w > enemy.x &&
+                player.y < enemy.y + enemy.h &&
+                player.y + player.h > enemy.y) {
+                gameOver();
             }
 
-            draw();
-            requestAnimationFrame(updateGame); // Use requestAnimationFrame for smoother animation
-        }
-
-        function endRound() {
-            addScore(score);
-            alert(`Game Over! Skor Anda: ${score}`);
-            showMenu('mainMenu');
-        }
-
-        // --- Input Handling (Mouse & Touch) ---
-        let isDragging = false;
-        let startDragX, startDragY;
-
-        function getEventCoords(event) {
-            const rect = canvas.getBoundingClientRect();
-            let clientX, clientY;
-            if (event.touches) {
-                clientX = event.touches[0].clientX;
-                clientY = event.touches[0].clientY;
-            } else {
-                clientX = event.clientX;
-                clientY = event.clientY;
-            }
-            return {
-                x: (clientX - rect.left) * (canvas.width / rect.width),
-                y: (clientY - rect.top) * (canvas.height / rect.height)
-            };
-        }
-
-        canvas.addEventListener('mousedown', (e) => {
-            if (!gameActive || lovebird.flying) return;
-            const coords = getEventCoords(e);
-            if (Math.sqrt(Math.pow(coords.x - lovebird.x, 2) + Math.pow(coords.y - lovebird.y, 2)) < lovebird.radius) {
-                isDragging = true;
-                startDragX = coords.x;
-                startDragY = coords.y;
+            // Remove off-screen
+            if(enemy.y > 600) {
+                enemies.splice(index, 1);
+                score++;
+                speed += 0.1; // Increase difficulty
             }
         });
 
-        canvas.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            const coords = getEventCoords(e);
-            let dx = coords.x - startDragX;
-            let dy = coords.y - startDragY;
+        hud.innerText = `Score: ${score} | FPS: ${fps}`;
+    }
 
-            // Limit drag distance
-            const maxDrag = 100;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist > maxDrag) {
-                dx = (dx / dist) * maxDrag;
-                dy = (dy / dist) * maxDrag;
-            }
+    function draw() {
+        // Road
+        ctx.fillStyle = "#444";
+        ctx.fillRect(0, 0, 400, 600);
 
-            lovebird.x = slingshotPos.x + dx;
-            lovebird.y = slingshotPos.y + dy;
-
-            draw(); // Redraw lovebird position
-        });
-
-        canvas.addEventListener('mouseup', () => {
-            if (!isDragging) return;
-            isDragging = false;
-
-            let launchDx = slingshotPos.x - lovebird.x;
-            let launchDy = slingshotPos.y - lovebird.y;
-
-            lovebird.vx = launchDx * 0.2; // Launch power
-            lovebird.vy = launchDy * 0.2;
-            lovebird.flying = true;
-        });
-
-        // Touch events
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Prevent default browser touch behavior (like scrolling)
-            if (!gameActive || lovebird.flying) return;
-            const coords = getEventCoords(e);
-            if (Math.sqrt(Math.pow(coords.x - lovebird.x, 2) + Math.pow(coords.y - lovebird.y, 2)) < lovebird.radius * 2) { // Bigger hit area for touch
-                isDragging = true;
-                startDragX = coords.x;
-                startDragY = coords.y;
-            }
-        });
-
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            if (!isDragging) return;
-            const coords = getEventCoords(e);
-            let dx = coords.x - startDragX;
-            let dy = coords.y - startDragY;
-
-            const maxDrag = 100;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist > maxDrag) {
-                dx = (dx / dist) * maxDrag;
-                dy = (dy / dist) * maxDrag;
-            }
-
-            lovebird.x = slingshotPos.x + dx;
-            lovebird.y = slingshotPos.y + dy;
-
-            draw();
-        });
-
-        canvas.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            if (!isDragging) return;
-            isDragging = false;
-
-            let launchDx = slingshotPos.x - lovebird.x;
-            let launchDy = slingshotPos.y - lovebird.y;
-
-            lovebird.vx = launchDx * 0.2;
-            lovebird.vy = launchDy * 0.2;
-            lovebird.flying = true;
-        });
-
-
-        // --- Initialization ---
-        function init() {
-            // Load settings from localStorage
-            const savedVolume = localStorage.getItem('gameVolume');
-            if (savedVolume !== null) {
-                updateVolume(parseInt(savedVolume));
-                volumeSlider.value = savedVolume;
-            } else {
-                gameMusic.volume = 1.0;
-            }
-
-            const savedFPS = localStorage.getItem('gameFPS');
-            if (savedFPS !== null) {
-                updateFPS(parseInt(savedFPS));
-                fpsSlider.value = savedFPS;
-            }
-
-            // Start music (will autoplay if allowed by browser policies, otherwise will play on first user interaction)
-            gameMusic.play().catch(e => console.log("Autoplay blocked. User interaction needed to play music."));
-
-            showMenu('mainMenu');
-            draw(); // Draw initial screen
+        // Road Lines
+        ctx.fillStyle = "white";
+        for(let i=0; i<10; i++) {
+            ctx.fillRect(195, (i*100 + (score*speed)%100), 10, 50);
         }
 
-        lovebirdImg.onload = () => { // Ensure images are loaded before drawing
-            blockImg.onload = () => {
-                monkeyImg.onload = init;
-            };
-        };
+        // Draw Player
+        drawCar(player.x, player.y, "#3498db", true);
 
+        // Draw Enemies
+        enemies.forEach(enemy => {
+            drawCar(enemy.x, enemy.y, enemy.color, false);
+        });
+    }
 
-        // Fallback if images fail to load
-        lovebirdImg.onerror = blockImg.onerror = monkeyImg.onerror = () => {
-            console.error("Failed to load one or more images. Using fallback colors.");
-            // Define fallback draw functions or set lovebird.img = null;
-            // For now, init directly
-            init();
-        };
+    function gameOver() {
+        gameActive = false;
+        alert("CRASH! Your Score: " + score);
+        document.getElementById("mainMenu").style.display = "flex";
+    }
 
-        // If for some reason images don't load (e.g., bad URL), ensure init still runs
-        setTimeout(() => {
-            if (!gameActive) { // Only if game hasn't started (meaning images didn't trigger onload)
-                init();
-            }
-        }, 1000); // Give 1 second for images to try loading
-        
-    </script>
+</script>
 </body>
-  </html>
+    </html>
